@@ -13,7 +13,7 @@
 
 <br/>
 
-## [ChaosLib.D3D](d3d)
+## [ChaosLib.D3D](ChaosLib.D3D)
 ### Currently Available
 * __Binary Importer__
   * ``BM`` Last Chaos Mesh (Version 16 & 17)
@@ -35,7 +35,7 @@
 * __OBJ Exporter__
   * ``OBJ`` Mesh (with UV) (this format does not support weight maps which are needed for animations)
 
-## [ChaosLib.MAP](map)
+## [ChaosLib.MAP](ChaosLib.Map)
 ### Currently Available
 * __Binary Importer__
   * ``LOD`` Action
