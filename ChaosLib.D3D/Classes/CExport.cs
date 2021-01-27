@@ -122,8 +122,7 @@ namespace ChaosLib.D3D.Classes
                     matrix[1, 3] = bone.vPosition[1];
                     matrix[2, 3] = bone.vPosition[2];
 
-                    // yikes
-                    string asciiMatrix = JsonConvert.SerializeObject(matrix).Replace("]", "").Replace("[", " ");
+                    string asciiMatrix = JsonConvert.SerializeObject(matrix).Replace("]", "").Replace("[", " "); // wesmart
                     sb.Append($"\t\t{asciiMatrix};\n");
                     sb.Append("\t}\n");
                 }
