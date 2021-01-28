@@ -8,27 +8,27 @@ namespace ChaosLib.D3D.Interfaces
         /// <summary>
         /// Start processing given asset
         /// </summary>
-        /// <param name="at">Asset Type</param>
-        /// <param name="fp">Full file path</param>
+        /// <param name="at">Asset type</param>
+        /// <param name="fp">File path</param>
         dynamic BinaryFile(AssetType at, string fp);
 
         /// <summary>
         /// Define which mesh version to read
         /// </summary>
-        /// <param name="fs">File Stream</param>
+        /// <param name="fs">File stream</param>
         CBinaryMesh BinaryMesh(FileStream fs);
 
         /// <summary>
         /// Read Mesh V17
         /// </summary>
-        /// <param name="br">Binary Reader</param>
+        /// <param name="br">Binary reader</param>
         /// <param name="bm">Mesh data</param>
         CBinaryMesh ReadMeshV17(BinaryReader br, CBinaryMesh bm);
 
         /// <summary>
         /// Read Mesh V16
         /// </summary>
-        /// <param name="br">Binary Reader</param>
+        /// <param name="br">Binary reader</param>
         /// <param name="bm">Mesh data</param>
         CBinaryMesh ReadMeshV16(BinaryReader br, CBinaryMesh bm);
 

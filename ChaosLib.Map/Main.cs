@@ -15,22 +15,22 @@ namespace ChaosLib.Map
     /// </summary>
     public enum ContentDataType
     {
-        /// <summary>A original 16xx client binary file.</summary>
+        /// <summary>Original 16xx client binary file</summary>
         Binary,
 
-        /// <summary>A database table.</summary>
+        /// <summary>Database table</summary>
         Database,
 
-        /// <summary>A json file. (1/5 gcc)</summary>
+        /// <summary>JSON file</summary>
         JSON,
 
-        /// <summary>A bson file. (under construction)</summary>
+        /// <summary>BSON file (under construction)</summary>
         BSON,
 
-        /// <summary>A zero formatter file. (under construction)</summary>
+        /// <summary>ZeroFormatter file (under construction)</summary>
         ZeroFormatter,
 
-        /// <summary>A messagepack file. (under construction)</summary>
+        /// <summary>Messagepack file (under construction)</summary>
         MSGPACK
     }
 

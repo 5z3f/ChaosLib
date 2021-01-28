@@ -3,6 +3,8 @@ using System.Numerics;
 using System.Collections.Generic;
 
 using ChaosLib.D3D.Structures;
+using System.Drawing.Imaging;
+using System.Drawing;
 
 namespace ChaosLib.D3D.Classes
 {
@@ -91,6 +93,44 @@ namespace ChaosLib.D3D.Classes
             }
 
             return newBone.ToArray();
+        }
+
+        public static Bitmap CreateBitmap(int w, int h, byte[] pd, PixelFormat pf)
+        {
+            Bitmap bmp = new Bitmap(w, h, pf);
+            BitmapData data = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.WriteOnly, pf);
+            IntPtr scan = data.Scan0;
+
+            int size = bmp.Width * bmp.Height * (pf is PixelFormat.Format32bppArgb ? 4 : 3);
+            unsafe
+            {
+                byte* p = (byte*)scan;
+
+                if (pf is PixelFormat.Format32bppArgb)
+                {
+                    for (int i = 0; i < size; i += 4)
+                    {
+                        // dds = BGRA || bmp = RGBA
+                        p[i + 0] = pd[i + 2];   // blue
+                        p[i + 1] = pd[i + 1];   // green
+                        p[i + 2] = pd[i + 0];   // red
+                        p[i + 3] = pd[i + 3];   // alpha
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < size; i += 3)
+                    {
+                        // rgb
+                        p[i + 0] = pd[i + 2]; // blue
+                        p[i + 1] = pd[i + 1]; // green
+                        p[i + 2] = pd[i + 0]; // red
+                    }
+                }
+            }
+
+            bmp.UnlockBits(data);
+            return bmp;
         }
     }
 }

@@ -1,6 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Dynamic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using BinarySerialization;
 
 using ChaosLib.D3D.Interfaces;
@@ -22,10 +25,117 @@ namespace ChaosLib.D3D.Classes
                 AssetType.Animation => bs.Deserialize<CBinaryAnimation>(fs),
                 AssetType.AnimationEffect => bs.Deserialize<CBinaryAnimationEffect>(fs),
                 AssetType.Skeleton => bs.Deserialize<CBinarySkeleton>(fs),
+                AssetType.Texture => BinaryTexture(fs),
 
                 _ => null,
             };
         }
+
+        public dynamic BinaryTexture(FileStream fs)
+        {
+            CBinaryTexture bt = new CBinaryTexture();
+            using (BinaryReader br = new BinaryReader(fs))
+            {
+                CTextureHeader h = new CTextureHeader
+                {
+                    FileTypeMagic = Encoding.ASCII.GetString(br.ReadBytes(4)),
+                    FileVersion = br.ReadInt32()
+                };
+
+                h.EncodedVersion = (h.FileVersion & uint.MaxValue) >> 16;
+                h.FileVersion &= UInt16.MaxValue;
+
+                bt.Header = h;
+
+                if (h.FileTypeMagic != "TVER")
+                    throw new ArgumentException($"Header does not match 'TVER' pattern, invalid binary texture file", nameof(h.FileTypeMagic));
+
+                if (h.FileVersion is not 5 && h.FileVersion is not 4 or 3)
+                    throw new ArgumentException($"This binary texture file is not supported by chaoslib.d3d", nameof(h.FileVersion));
+
+                bt.DataTypeMagic = Encoding.ASCII.GetString(br.ReadBytes(4));
+
+                if (bt.DataTypeMagic != "TDAT")
+                    throw new ArgumentException($"Data chunk does not match 'TDAT' pattern, invalid binary texture file", nameof(bt.DataTypeMagic));
+
+                if (h.EncodedVersion is 5 or CBinaryTexture.TEX_DATA_VER)
+                {
+                    bt.ubChecker = (byte)h.EncodedVersion;
+
+                    bt.Width = bt.TexBitwise(br.ReadUInt32());
+                    bt.FirstMipLevel = bt.TexBitwise(br.ReadUInt32());
+                    bt.Height = bt.TexBitwise(br.ReadUInt32());
+                    bt.MipMapCount = bt.TexBitwise(br.ReadUInt32());
+                    bt.Flags = bt.TexBitwise(br.ReadUInt32());
+                    bt.FrameCount = bt.TexBitwise(br.ReadUInt32());
+
+                    if (h.FileVersion is not 4)
+                    {
+                        bt.MipLevelCount = br.ReadUInt32();
+                        bt.FrameSize = br.ReadUInt32();
+                    }
+                }
+                else
+                {
+                    bt.Flags = br.ReadUInt32();
+                    bt.Width = br.ReadUInt32();
+                    bt.Height = br.ReadUInt32();
+                    bt.MipMapCount = br.ReadUInt32();
+                    if (h.FileVersion is not 4) bt.MipLevelCount = br.ReadUInt32();
+                    bt.FirstMipLevel = br.ReadUInt32();
+                    if (h.FileVersion is not 4) bt.FrameSize = br.ReadUInt32();
+                    bt.FrameCount = br.ReadUInt32();
+                }
+
+                bt.Width >>= (int)bt.FirstMipLevel;
+                bt.Height >>= (int)bt.FirstMipLevel;
+
+                bt.FrameTypeMagic = Encoding.ASCII.GetString(br.ReadBytes(4));
+
+                if (bt.FrameTypeMagic is not "FRMC" && bt.FrameTypeMagic is not "FRMS")
+                    throw new ArgumentException($"Frame chunk does not match 'FRMC' and 'FRMC' pattern, invalid binary texture file", nameof(bt.FrameTypeMagic));
+
+                if (bt.FrameTypeMagic == "FRMC")
+                    bt.CompressedFrameSize = br.ReadInt32();
+
+                bool hasAlphaChannel = Convert.ToBoolean(bt.Flags & (ulong)TextureFlag.TEX_ALPHACHANNEL);
+                bool hasCompressedAlpha = Convert.ToBoolean(bt.Flags & (ulong)TextureFlag.TEX_COMPRESSEDALPHA);
+                bool isTransparent = Convert.ToBoolean(bt.Flags & (ulong)TextureFlag.TEX_TRANSPARENT);
+                bool isCompressed = Convert.ToBoolean(bt.Flags & (ulong)TextureFlag.TEX_COMPRESSED);
+                bool isRawRGBA = Convert.ToBoolean((ulong)TextureFlag.TEX_ALPHACHANNEL & bt.Flags) && bt.FrameTypeMagic is "FRMS";
+
+                bt.TextureFormat = isRawRGBA
+                    ? TextureFormat.RGBA : hasAlphaChannel && hasCompressedAlpha
+                    ? TextureFormat.DXT5 : hasAlphaChannel && !isTransparent
+                    ? TextureFormat.DXT3 : isCompressed
+                    ? TextureFormat.DXT1 : TextureFormat.RGB;
+
+                // only single texture supported for now
+                bool isRaw = (bt.TextureFormat is TextureFormat.RGB or TextureFormat.RGBA) ? true : false;
+                bt.PixelData = br.ReadBytes(isRaw ? ((int)bt.Width * (int)bt.Height) * (bt.TextureFormat is TextureFormat.RGB ? 3 : 4) : br.ReadInt32());
+
+                if (bt.FrameTypeMagic is "FRMC")
+                    bt.PixelData = CDecompression.DecompressImage((int)bt.Width, (int)bt.Height, bt.PixelData, (CDecompression.DXTFlags)Enum.Parse(typeof(CDecompression.DXTFlags), bt.TextureFormat.ToString(), true));
+            };
+
+            Bitmap bmp = CUtils.CreateBitmap((int)bt.Width, (int)bt.Height, bt.PixelData, bt.TextureFormat is TextureFormat.RGB
+                ? PixelFormat.Format24bppRgb : PixelFormat.Format32bppArgb);
+
+            dynamic obj = new ExpandoObject();
+
+            obj.Image = bmp;
+            obj.Format = bt.TextureFormat;
+            obj.Width = bt.Width;
+            obj.Height = bt.Height;
+            obj.PixelData = bt.PixelData;
+
+            obj.Version = new ExpandoObject();
+            obj.Version.Standard = bt.Header.FileVersion;
+            obj.Version.Encoded = bt.Header.EncodedVersion;
+
+            return obj;
+        }
+
 
         // code from sketch
         #region BINARY_DIRTY_CODE
@@ -49,7 +159,7 @@ namespace ChaosLib.D3D.Classes
                     && cHeader.FileVersion is not CBinaryMesh.MESH_OLD_VER_LC
                     && cHeader.FileVersion is not CBinaryMesh.MESH_VER11_SE110
                     && cHeader.FileVersion is not CBinaryMesh.MESH_VER12_SE110)
-                    throw new ArgumentException($"This binary mesh file is not supported by chaoslib.d3d", nameof(cHeader.FileTypeMagic));
+                    throw new ArgumentException($"This binary mesh file is not supported by chaoslib.d3d", nameof(cHeader.FileVersion));
 
 
                 if (cHeader.FileVersion is CBinaryMesh.MESH_NEW_VER_LC or CBinaryMesh.MESH_OLD_VER_LC)

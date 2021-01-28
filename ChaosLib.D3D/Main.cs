@@ -49,7 +49,10 @@ namespace ChaosLib.D3D
         AnimationEffect,
 
         /// <summary>ASCII Animation List</summary>
-        Animset
+        Animset,
+
+        // <summary>Texture</summary>
+        Texture
     }
 
     public class ChaosAsset

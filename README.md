@@ -13,7 +13,7 @@
 
 <br/>
 
-## [ChaosLib.D3D](ChaosLib.D3D)
+## [ChaosLib.D3D](https://github.com/5z3f/ChaosLib/tree/main/ChaosLib.D3D)
 ### Currently Available
 * __Binary Importer__
   * ``BM`` Last Chaos Mesh (Version 16 & 17)
@@ -21,6 +21,7 @@
   * ``BS`` Last Chaos Skeleton
   * ``BA`` Last Chaos Animation
   * ``BAE`` Last Chaos Animation Effect
+  * ``TEX`` Last Chaos Texture
 * __Binary Exporter__
   * ``BM`` Last Chaos Mesh (Version 17)
   * ``BM`` Serious Engine 1.10 Mesh (Version 12)
@@ -35,7 +36,7 @@
 * __OBJ Exporter__
   * ``OBJ`` Mesh (with UV) (this format does not support weight maps which are needed for animations)
 
-## [ChaosLib.MAP](ChaosLib.Map)
+## [ChaosLib.MAP](https://github.com/5z3f/ChaosLib/tree/main/ChaosLib.Map)
 ### Currently Available
 * __Binary Importer__
   * ``LOD`` Action
@@ -77,6 +78,17 @@ chaosAsset.Export(AssetType.Mesh, dataObject, "besurel.obj", AssetDataType.OBJ);
 ```
 
 ![besurel.obj](example/img/besurel-obj.png)
+
+### ``.TEX >> .PNG``
+
+```cs
+ChaosAsset chaosAsset = new ChaosAsset();
+var texture = chaosAsset.Import(AssetType.Texture, "besurel.tex", AssetDataType.Binary);
+Bitmap bmp = texture.Image;
+bmp.Save("besurel.png", ImageFormat.Png);
+```
+
+![besurel.png](example/besurel.png)
 
 ## Contributors
 * [Karmel0x](https://github.com/Karmel0x) - his knowledge and helping hand <img align="left" src="https://cdn.frankerfacez.com/emoticon/250614/1" width="28px" height="22px">

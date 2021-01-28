@@ -24,7 +24,7 @@ namespace ChaosLib.D3D.Classes
 
     class CExport : IExport
     {
-        public dynamic BinaryFile(AssetType at, dynamic bm, string fp)
+        public dynamic BinaryFile(AssetType at, dynamic dataObject, string fp)
         {
             FileStream fs = File.Create(fp);
             BinaryWriter bw = new BinaryWriter(fs);
@@ -32,10 +32,10 @@ namespace ChaosLib.D3D.Classes
 
             var data = at switch
             {
-                AssetType.Mesh => WriteMeshV17(bw, bm),
-                AssetType.MeshSE => WriteMeshV110(bw, bm),
-                AssetType.Animation => bs.Serialize(fs, bm),
-                AssetType.Skeleton => bs.Serialize(fs, bm),
+                AssetType.Mesh => WriteMeshV17(bw, dataObject),
+                AssetType.MeshSE => WriteMeshV110(bw, dataObject),
+                AssetType.Animation => bs.Serialize(fs, dataObject),
+                AssetType.Skeleton => bs.Serialize(fs, dataObject),
 
                 _ => null,
             };
