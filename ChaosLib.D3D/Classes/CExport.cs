@@ -17,13 +17,13 @@ using SharpGLTF.Schema2;
 using SharpGLTF.Geometry;
 using SharpGLTF.Materials;
 using SharpGLTF.Geometry.VertexTypes;
+using System.Linq;
 
 namespace ChaosLib.D3D.Classes
 {
-    using VERTEX = VertexBuilder<VertexPosition, VertexTexture1, VertexEmpty>;
-
     class CExport : IExport
     {
+
         public dynamic BinaryFile(AssetType at, dynamic dataObject, string fp)
         {
             FileStream fs = File.Create(fp);
@@ -103,20 +103,19 @@ namespace ChaosLib.D3D.Classes
                     sb.Append($"\tLENGTH {bone.boneLength.ToString("0.000000")};\n");
                     sb.Append("\t{\n");
 
+                    var q2m = CUtils.QTM2(new Quaternion(new Vector3(bone.qRotation[1], bone.qRotation[2], bone.qRotation[3]), bone.qRotation[0]));
 
-                    float[,] q2m = CUtils.Q2M(new Quaternion(new Vector3(bone.qRotation[1], bone.qRotation[2], bone.qRotation[3]), bone.qRotation[0]));
+                    matrix[0, 0] = q2m[0][0];
+                    matrix[0, 1] = q2m[0][1];
+                    matrix[0, 2] = q2m[0][2];
 
-                    matrix[0, 0] = q2m[0, 0];
-                    matrix[0, 1] = q2m[0, 1];
-                    matrix[0, 2] = q2m[0, 2];
+                    matrix[1, 0] = q2m[1][0];
+                    matrix[1, 1] = q2m[1][1];
+                    matrix[1, 2] = q2m[1][2];
 
-                    matrix[1, 0] = q2m[1, 0];
-                    matrix[1, 1] = q2m[1, 1];
-                    matrix[1, 2] = q2m[1, 2];
-
-                    matrix[2, 0] = q2m[2, 0];
-                    matrix[2, 1] = q2m[2, 1];
-                    matrix[2, 2] = q2m[2, 2];
+                    matrix[2, 0] = q2m[2][0];
+                    matrix[2, 1] = q2m[2][1];
+                    matrix[2, 2] = q2m[2][2];
 
                     matrix[0, 3] = bone.vPosition[0];
                     matrix[1, 3] = bone.vPosition[1];
@@ -311,6 +310,7 @@ namespace ChaosLib.D3D.Classes
             return sb;
         }
 
+
         public dynamic OBJ(dynamic dataObject, string fp)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
@@ -324,16 +324,34 @@ namespace ChaosLib.D3D.Classes
             MakeInformationHeader(Path.GetFileNameWithoutExtension(meshData.SkaPath), "MTL", sbmtl);
 
             sb.Append(string.Format("mtllib ./{0}.mtl\n", Path.GetFileNameWithoutExtension(fp)));
+
+            List<string> materialIds = new List<string>();
+            for (int i = 0; i < meshData.SurfaceCount; i++)
+            {
+                if(meshData.Surfaces[i].Shader != null)
+                {
+                    string texName = meshData.Surfaces[i].Shader.TexIDs[0];
+                    if (!materialIds.Any(x => x == texName))
+                    {
+                        materialIds.Add(texName);
+                        sbmtl.Append($"\nnewmtl {texName}\n");
+                        sbmtl.Append($"map_Kd {texName}.tga\n");
+                    }
+                }
+                else
+                {
+                    sbmtl.Append($"\nnewmtl surface_{i}\n");
+                    sbmtl.Append($"map_Kd default.tga\n");
+                }
+
+                //sbmtl.Append("Kd 1 1 1\n");
+                //sbmtl.Append("Ks 1 1 1\n");
+            }
+
             for (int i = 0; i < meshData.SurfaceCount; i++)
             {
                 sb.Append($"\no {meshData.Surfaces[i].Name}\n");
-                sbmtl.Append($"\nnewmtl surface_{i}\n");
-                sbmtl.Append($"map_Kd default.tga\n");
-                //sbmtl.Append("Kd 1 1 1\n");
-                //sbmtl.Append("Ks 1 1 1\n");
-
-                sb.Append($"usemtl surface_{i}\n");
-
+                sb.Append($"usemtl {meshData.Surfaces[i].Shader.TexIDs[0]}\n");
                 for (uint j = meshData.Surfaces[i].FirstVertex; j < meshData.Surfaces[i].FirstVertex + meshData.Surfaces[i].VerticeCount; ++j)
                 {
                     float vx = meshData.Vertices[j].X;
@@ -373,88 +391,71 @@ namespace ChaosLib.D3D.Classes
             return true;
         }
 
-        public dynamic glTF(dynamic dataObject, string fp)
+        public static Mesh CreateMesh(ModelRoot root, IMeshBuilder<MaterialBuilder> mesh)
         {
-            // broken
+            return root.CreateMeshes(mesh)[0];
+        }
 
+        public dynamic glTF(dynamic dataObject, string fp, bool toBinary)
+        {
             var meshData = dataObject.Mesh[0];
+
             ModelRoot model = ModelRoot.CreateModel();
+            var scene = model.UseScene("Default");
+
+            List<Vector3> v = new List<Vector3>();
+            List<Vector3> vn = new List<Vector3>();
+            List<Vector2> uv = new List<Vector2>();
+
+            for (uint j = 0; j < meshData.VertexMapCount; ++j)
+            {
+                v.Add(new Vector3(meshData.Vertices[j].X, meshData.Vertices[j].Y, meshData.Vertices[j].Z));
+                vn.Add(new Vector3(meshData.Normals[j].X, meshData.Normals[j].Y, meshData.Normals[j].Z));
+                uv.Add(new Vector2(meshData.UVMaps[0].UV[j].U, meshData.UVMaps[0].UV[j].V));
+            }
 
             for (int i = 0; i < meshData.SurfaceCount; i++)
             {
-                var mesh = VERTEX.CreateCompatibleMesh();
+                var mesh = VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>
+                    .CreateCompatibleMesh(meshData.Surfaces[i].Name);
 
-                MaterialBuilder material = new MaterialBuilder(meshData.Surfaces[i].Name);
-                var primitive = mesh.UsePrimitive(material);
+                MaterialBuilder material;
 
-                List<VERTEX> vertices = new List<VERTEX>();
-
-                for (uint j = meshData.Surfaces[i].FirstVertex; j < meshData.Surfaces[i].FirstVertex + meshData.Surfaces[i].VerticeCount; ++j)
+                if (meshData.Surfaces[i].Shader != null)
                 {
-                    vertices.Add(new VERTEX()
-                        .WithGeometry(new Vector3(meshData.Vertices[j].X, meshData.Vertices[j].Y, meshData.Vertices[j].Z))
-                        .WithMaterial(new Vector2(meshData.UVMaps[0].UV[j].U, meshData.UVMaps[0].UV[j].V)));
-                    // add normals
-                }
+                    string texid = meshData.Surfaces[i].Shader.TexIDs[0];
+                    string fptex = Path.GetDirectoryName(fp) + $"/{texid}.png";
 
+                    if (File.Exists(fptex) && toBinary)
+                        material = new MaterialBuilder(texid)
+                            .WithChannelImage(KnownChannel.BaseColor, fptex);
+                    else
+                        material = new MaterialBuilder(texid);
+                }
+                else
+                    material = new MaterialBuilder("material_" + i);
 
                 for (int j = 0; j < meshData.Surfaces[i].TriangleCount; j++) // += 3  && [v0 - 0] [v1 - 1] [v2 - 2] || fw + 1
                 {
                     int fw = (int)meshData.Surfaces[i].FirstVertex;
 
-                    int v0i = meshData.Surfaces[i].Triangles[j].v0 + fw;
-                    int v1i = meshData.Surfaces[i].Triangles[j].v1 + fw;
-                    int v2i = meshData.Surfaces[i].Triangles[j].v2 + fw;
+                    int v0 = meshData.Surfaces[i].Triangles[j].v0 + fw;
+                    int v1 = meshData.Surfaces[i].Triangles[j].v1 + fw;
+                    int v2 = meshData.Surfaces[i].Triangles[j].v2 + fw;
 
-                    VERTEX v0 = vertices[(int)meshData.Surfaces[i].Triangles[v0i].v0];
-                    VERTEX v1 = vertices[(int)meshData.Surfaces[i].Triangles[v1i].v1];
-                    VERTEX v2 = vertices[(int)meshData.Surfaces[i].Triangles[v2i].v2];
+                    var v0g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((v[v0], vn[v0]), uv[v0]);
+                    var v1g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((v[v1], vn[v1]), uv[v1]);
+                    var v2g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((v[v2], vn[v2]), uv[v2]);
 
-                    primitive.AddTriangle(v0, v1, v2);
-
-                    /*
-                    int v0value = v0;
-                    int v1value = v1;
-                    int v2value = v2;
-
-
-
-                    var v0g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((
-                        new Vector3(v[v0value].X, v[v0value].Y, v[v0value].Z),
-                        new Vector3(vn[v0value].X, vn[v0value].Y, vn[v0value].Z)),
-                        new Vector2(uv[v0value].X, uv[v0value].Y));
-
-
-                    var v1g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((
-                        new Vector3(v[v1value].X, v[v1value].Y, v[v1value].Z),
-                        new Vector3(vn[v1value].X, vn[v1value].Y, vn[v1value].Z)),
-                        new Vector2(uv[v1value].X, uv[v1value].Y));
-
-
-                    var v2g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((
-                        new Vector3(v[v2value].X, v[v2value].Y, v[v2value].Z),
-                        new Vector3(vn[v2value].X, vn[v2value].Y, vn[v2value].Z)),
-                        new Vector2(uv[v2value].X, uv[v2value].Y));
-
-                    //mesh.UsePrimitive(material).AddTriangle(v0g, v1g, v2g);
-
-                    var ver0 = new Vector3(v[v0value].X, v[v0value].Y, v[v0value].Z);
-                    var ver1 = new Vector3(v[v1value].X, v[v1value].Y, v[v1value].Z);
-                    var ver2 = new Vector3(v[v2value].X, v[v2value].Y, v[v2value].Z);
-
-                    mesh.UsePrimitive(material).AddTriangle(ver0, ver1, ver2);
-                    */
+                    mesh.UsePrimitive(material).AddTriangle(v0g, v1g, v2g);
                 }
 
-                model.CreateMeshes(mesh);
+                CreateMesh(model, mesh);
+                scene.CreateNode().WithMesh(model.LogicalMeshes[i]);
             }
 
-            // create a scene, a node, and assign the first mesh (the terrain)
-            model.UseScene("Default")
-                .CreateNode().WithMesh(model.LogicalMeshes[0]);
-
-            // save the model as GLTF
-            model.SaveGLTF(Environment.CurrentDirectory + $"/test_compra.gltf");
+            if(toBinary) model.SaveGLB(fp);
+            else model.SaveGLTF(fp);
 
             return true;
         }

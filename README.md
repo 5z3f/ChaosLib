@@ -35,6 +35,8 @@
   * ``AAL`` Animset List
 * __OBJ Exporter__
   * ``OBJ`` Mesh (with UV) (this format does not support weight maps which are needed for animations)
+* __GLTF Exporter__
+  * ``GLTF/GLB`` Mesh (without weight maps) (if .png textures exists in saving directory they will be packed into .glb file)
 
 ## [ChaosLib.MAP](https://github.com/5z3f/ChaosLib/tree/main/ChaosLib.Map)
 ### Currently Available

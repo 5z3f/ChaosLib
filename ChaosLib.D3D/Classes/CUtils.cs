@@ -10,6 +10,50 @@ namespace ChaosLib.D3D.Classes
 {
     class CUtils
     {
+        public static float[][] im =
+        {
+             new [] { 100.0f, 0.0f, 0.0f },
+             new [] { 0.0f, 100.0f, 0.0f },
+             new [] { 0.0f, 0.0f, 100.0f }
+        };
+
+        public static float[][] QTM2(Quaternion q)
+        {
+            float[][] m =
+            {
+                 new float[3],
+                 new float[3],
+                 new float[3],
+             };
+
+            float[][] sm =
+            {
+                 new float[3] { (-(q.Y * q.Y) - (q.Z * q.Z)), q.X * q.Y, q.X * q.Z },
+                 new float[3] { q.X * q.Y, (-(q.X * q.X) - (q.Z * q.Z)), q.Y * q.Z },
+                 new float[3] { q.X * q.Z, q.Y * q.Z, (-(q.X * q.X) - (q.Y * q.Y)) }
+             };
+
+            float[][] asm =
+            {
+                 new [] { 0.0f, -q.Z, q.Y },
+                 new [] { q.Z, 0.0f, -q.X },
+                 new [] { -q.Y, q.X, 0.0f }
+             };
+
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    m[i][j] = im[i][j] +
+                              (2.0f * sm[i][j]) +
+                              (2.0f * q.W * asm[i][j]);
+                }
+            }
+
+            return m;
+        }
+
+
         public static float[,] Q2M(Quaternion Q)
         {
             float q0 = Q.W;

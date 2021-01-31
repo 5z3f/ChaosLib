@@ -24,8 +24,11 @@ namespace ChaosLib.D3D
         /// <summary>Wavefront 3D Object</summary>
         OBJ,
 
-        /// <summary>gltf test</summary>
-        GLTF
+        /// <summary>GL Transmission Format - ASCII</summary>
+        GLTF,
+
+        /// <summary>GL Transmission Format - Binary</summary>
+        GLB
     }
 
     /// <summary>
@@ -73,7 +76,8 @@ namespace ChaosLib.D3D
             AssetDataType.Binary => cExport.BinaryFile(at, dataObject, fp),
             AssetDataType.ASCII => cExport.ASCII(at, dataObject, fp),
             AssetDataType.OBJ => cExport.OBJ(dataObject, fp),
-            AssetDataType.GLTF => cExport.glTF(dataObject, fp),
+            AssetDataType.GLTF => cExport.glTF(dataObject, fp, false),
+            AssetDataType.GLB => cExport.glTF(dataObject, fp, true),
 
             _ => null,
         };
