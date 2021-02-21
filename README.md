@@ -120,7 +120,7 @@ bmp.Save("besurel.png", ImageFormat.Png);
 ## ``MAP ATTRIBUTES``
 ![attribute-all.png](example/map-attributes/attribute-all.png)
 
-### ``.WTR >> EXPORT ATTRIBUTES AS *.PNG``
+### ``.WTR >> .PNG``
 
 ```cs
 ChaosMap chaosMap = new ChaosMap();
@@ -145,7 +145,7 @@ bmpUnwalkable.Save("attribute-unwalkable.png", ImageFormat.Png);
 
 <img src="/example/map-attributes/attribute-unwalkable.png" alt="MATT_UNWALKABLE" height="512" width="512"/>
 
-### ``.SAT >> EXPORT ATTRIBUTES AS *.PNG``
+### ``.SAT >> .PNG``
 
 ```cs
 // sat contains only raw attribute bytes, there is no header defining version or map size so we need to do it manually
