@@ -131,7 +131,7 @@ var dataObject = chaosMap.Import(ContentType.WorldTerrain, ContentDataType.Binar
 Bitmap bmpMerged = dataObject.AttributeBitmap.Layers.Merged;
 bmpMerged.Save("attribute-combined.png", ImageFormat.Png);
 ```
-![attribute-combined.png](example/map-attributes/attribute-combined.png)
+<img src="/example/map-attributes/attribute-combined.png" alt="COMBINED" height="512" width="512"/>
 
 ```cs
 ChaosMap chaosMap = new ChaosMap();
@@ -142,7 +142,8 @@ var dataObject = chaosMap.Import(ContentType.WorldTerrain, ContentDataType.Binar
 Bitmap bmpUnwalkable = dataObject.AttributeBitmap.Layers.MATT_UNWALKABLE;
 bmpUnwalkable.Save("attribute-unwalkable.png", ImageFormat.Png);
 ```
-![attribute-unwalkable.png](example/map-attributes/attribute-unwalkable.png)
+
+<img src="/example/map-attributes/attribute-unwalkable.png" alt="MATT_UNWALKABLE" height="512" width="512"/>
 
 ### ``.SAT >> EXPORT ATTRIBUTES AS *.PNG``
 
