@@ -1,29 +1,19 @@
-﻿using MySql.Data.MySqlClient;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Data;
-using System.Threading.Tasks;
+
+using MySql.Data.MySqlClient;
+using NPoco;
 
 namespace ChaosLib.Map.Classes
 {
-    class CMySQL
+    public class CMySQL
     {
-        // full rewrite needed
-
-        public static List<cDatabaseConfig> configStructure;
         public static MySqlConnection mysqlConnection;
 
-        public static string strProvider;
-
-        internal class cSettings
-        {
-            public List<cDatabaseConfig> CONNECTION;
-        }
-
-        internal class cDatabaseConfig
+        public class CDatabaseConfig
         {
             public string Name,
-                Note,
+                Description,
                 Host,
                 Database,
                 Username,
@@ -32,100 +22,142 @@ namespace ChaosLib.Map.Classes
             public int Port;
         }
 
-        public static bool SetConnection(string strName)
+        public static (bool success, string msg) SetConnection(string host, int port, string database, string username, string password)
         {
-            cDatabaseConfig cConfig = configStructure.Find(p => p.Name.Equals(strName));
+            var test = TestConnection(host, port, database, username, password);
+            if (!test.success) return (false, test.msg);
 
-            if (cConfig == null)
-                return false;
+            string connectionString =
+                $"Data Source={host};" +
+                $"Port={port};" +
+                $"Database={database};" +
+                $"User ID={username};" +
+                $"Password={password};" +
+                $"Character Set=utf8";
 
-            strProvider = string.Format("Data Source={0}; Port={1}; Database={2}; User ID={3}; Password={4}; SslMode=none;", cConfig.Host, cConfig.Port, cConfig.Database, cConfig.Username, cConfig.Password);
-            return true;
+            mysqlConnection = new MySqlConnection(connectionString);
+
+            return (true, "ok");
         }
 
-
-        public static async Task<DataTable> QueryToDataTable(string sql)
+        public static dynamic QueryToClass<T>(dynamic c, string sql)
         {
-            var dt = new DataTable();
-            using (mysqlConnection = new MySqlConnection(strProvider))
+            var test = TestConnection(mysqlConnection);
+            if (!test.success) return false;
+
+            using (var db = new Database(mysqlConnection, DatabaseType.MySQL))
             {
                 mysqlConnection.Open();
-                var reader = await MySqlHelper.ExecuteReaderAsync(mysqlConnection, sql);
-                dt.Load(reader);
+                c.Data = db.Fetch<T>(sql).ToArray();
                 mysqlConnection.Close();
             }
 
-            return dt;
+            return c;
         }
 
-        public static async void ExecuteQuery(string query)
+        public static dynamic ExecuteQuery(string sql)
         {
-            using (mysqlConnection = new MySqlConnection(strProvider))
+            var test = TestConnection(mysqlConnection);
+            if (!test.success) return false;
+
+            dynamic result = null;
+
+            using (var db = new Database(mysqlConnection, DatabaseType.MySQL))
             {
                 mysqlConnection.Open();
-                await MySqlHelper.ExecuteNonQueryAsync(mysqlConnection, query);
-            }
-        }
-
-        public static async Task<object> QueryToObject(string query)
-        {
-            object result = null;
-
-            try
-            {
-                using (mysqlConnection = new MySqlConnection(strProvider))
-                {
-                    mysqlConnection.Open();
-                    MySqlCommand mySqlCommand = new MySqlCommand(query, mysqlConnection);
-                    result = await mySqlCommand.ExecuteScalarAsync();
-                    mysqlConnection.Close();
-                }
-            }
-            catch (Exception ex)
-            {
-                //
+                result = db.Fetch<dynamic>(sql);
+                mysqlConnection.Close();
             }
 
             return result;
         }
 
-        public static bool TestConnection(cDatabaseConfig settings)
+        public static (bool success, string msg) Action<T>(string tableName, dynamic dataObject, Command c)
         {
+            dynamic dbt = null;
+            string primaryKey = "a_index";
+
+            var test = TestConnection(mysqlConnection);
+            if (!test.success) return (false, test.msg);
+
             try
             {
-                object[] objArray = new object[5]
-                {
-                    settings.Host,
-                    settings.Port,
-                    settings.Database,
-                    settings.Username,
-                    settings.Password
-                };
-
-                using (mysqlConnection = new MySqlConnection(string.Format("Data Source={0}; Port={1}; Database={2}; User ID={3}; Password={4}; SslMode=none;", objArray)))
+                using (var db = new Database(mysqlConnection, DatabaseType.MySQL))
                 {
                     mysqlConnection.Open();
+
+                    _ = c switch
+                    {
+                        Command.Insert => db.Insert<T>(dataObject),
+                        Command.Update => db.Update(tableName, primaryKey, dataObject),
+                        Command.Delete => db.Delete(tableName, primaryKey, dataObject)
+                    };
+
                     mysqlConnection.Close();
+
+                    dbt = (true, "ok");
                 }
+            }
+            catch (Exception ex) {
+                dbt = (false, ex.Message);
+            }
 
-                return true;
-            }
-            catch (Exception ex)
-            {
-                //
-                return false;
-            }
+            return dbt;
         }
 
-        public static bool TestConnection(string sDescription)
+        public static (bool success, string msg) TestConnection(string host, int port, string database, string username, string password)
         {
-            cDatabaseConfig data = configStructure.Find(p => p.Note.Equals(sDescription));
+            dynamic state = null;
+            MySqlConnection testConnection = null;
 
-            if (data != null)
-                return TestConnection(data);
+            try
+            {
+                string connectionString = 
+                    $"Data Source={host};" +
+                    $"Port={port};" +
+                    $"Database={database};" +
+                    $"User ID={username};" +
+                    $"Password={password}";
 
-            return false;
+                testConnection = new MySqlConnection(connectionString);
+                testConnection.Open();
+
+                state = (true, "ok");
+            }
+            catch (MySqlException ex) {
+                state = (false, ex.Message);
+            }
+            finally
+            {
+                if (testConnection.State == ConnectionState.Open)
+                    testConnection.Close();
+            }
+
+            return state;
         }
 
+        public static (bool success, string msg) TestConnection(MySqlConnection testConnection)
+        {
+            dynamic state = null;
+
+            // if testconnection is not null
+
+            try
+            {
+                testConnection.Open();
+                state = (true, "ok");
+            }
+            catch (MySqlException ex)
+            {
+                state = (false, ex.Message);
+            }
+            finally
+            {
+                if (testConnection.State == ConnectionState.Open)
+                    testConnection.Close();
+            }
+
+            return state;
+        }
     }
 }

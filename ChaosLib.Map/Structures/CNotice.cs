@@ -1,10 +1,16 @@
 ﻿using System.Collections.Generic;
+
 using BinarySerialization;
+using BinaryIgnore = BinarySerialization.IgnoreAttribute;
+
 
 namespace ChaosLib.Map.Structures
 {
     public class CNotice
     {
+        [BinaryIgnore]
+        public const string FieldEncoding = "ascii";
+
         [FieldOrder(0)]
         public int DataLength;
 
@@ -26,7 +32,7 @@ namespace ChaosLib.Map.Structures
 
         [FieldOrder(5)]
         [FieldLength(nameof(TitleLength))]
-        [FieldEncoding("ascii")]
+        [FieldEncoding(CNotice.FieldEncoding)]
         public string Title;
 
         [FieldOrder(6)]
@@ -34,7 +40,7 @@ namespace ChaosLib.Map.Structures
 
         [FieldOrder(7)]
         [FieldLength(nameof(MessageLength))]
-        [FieldEncoding("ascii")]
+        [FieldEncoding(CNotice.FieldEncoding)]
         public string Message;
 
         [FieldOrder(8)]

@@ -75,9 +75,9 @@ namespace ChaosLib.D3D
         {
             AssetDataType.Binary => cExport.BinaryFile(at, dataObject, fp),
             AssetDataType.ASCII => cExport.ASCII(at, dataObject, fp),
-            AssetDataType.OBJ => cExport.OBJ(dataObject, fp),
-            AssetDataType.GLTF => cExport.glTF(dataObject, fp, false),
-            AssetDataType.GLB => cExport.glTF(dataObject, fp, true),
+            AssetDataType.OBJ => cExport.WriteOBJ(dataObject, fp),
+            AssetDataType.GLTF => cExport.WriteGLTF(dataObject, fp, false),
+            AssetDataType.GLB => cExport.WriteGLTF(dataObject, fp, true),
 
             _ => null,
         };

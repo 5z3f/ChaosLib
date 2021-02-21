@@ -35,7 +35,15 @@ namespace ChaosLib.D3D.Interfaces
         /// </summary>
         /// <param name="dataObject">Data object</param>
         /// <param name="fp">Full file path</param>
-        dynamic OBJ(dynamic dataObject, string fp);
+        dynamic WriteOBJ(dynamic dataObject, string fp);
+
+        /// <summary>
+        /// Write GLTF/GLB
+        /// </summary>
+        /// <param name="dataObject">Data object</param>
+        /// <param name="fp">Full file path</param>
+        /// <param name="toBinary">Whether to save in binary or ASCII</param>
+        dynamic WriteGLTF(dynamic dataObject, string fp, bool toBinary);
 
         /// <summary>
         /// Write 1.10 mesh to binary stream

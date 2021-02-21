@@ -310,8 +310,7 @@ namespace ChaosLib.D3D.Classes
             return sb;
         }
 
-
-        public dynamic OBJ(dynamic dataObject, string fp)
+        public dynamic WriteOBJ(dynamic dataObject, string fp)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
 
@@ -350,8 +349,10 @@ namespace ChaosLib.D3D.Classes
 
             for (int i = 0; i < meshData.SurfaceCount; i++)
             {
+                string texid = meshData.Surfaces[i].Shader != null ? meshData.Surfaces[i].Shader.TexIDs[0] : "surface_" + i;
                 sb.Append($"\no {meshData.Surfaces[i].Name}\n");
-                sb.Append($"usemtl {meshData.Surfaces[i].Shader.TexIDs[0]}\n");
+                sb.Append($"usemtl {texid}\n");
+
                 for (uint j = meshData.Surfaces[i].FirstVertex; j < meshData.Surfaces[i].FirstVertex + meshData.Surfaces[i].VerticeCount; ++j)
                 {
                     float vx = meshData.Vertices[j].X;
@@ -396,7 +397,7 @@ namespace ChaosLib.D3D.Classes
             return root.CreateMeshes(mesh)[0];
         }
 
-        public dynamic glTF(dynamic dataObject, string fp, bool toBinary)
+        public dynamic WriteGLTF(dynamic dataObject, string fp, bool toBinary)
         {
             var meshData = dataObject.Mesh[0];
 
