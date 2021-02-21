@@ -118,6 +118,8 @@ bmp.Save("besurel.png", ImageFormat.Png);
 ![besurel.png](example/besurel.png)
 
 ## ``MAP ATTRIBUTES``
+![attribute-all.png](example/map-attributes/attribute-all.png)
+
 ### ``.WTR >> EXPORT ATTRIBUTES AS *.PNG``
 
 ```cs
