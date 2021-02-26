@@ -21,14 +21,14 @@ namespace ChaosLib.Map.Classes
                 int height = additional.Height;
                 int width = additional.Width;
 
-                dynamic AttributeMap = additional.IsNew ? new ushort[height, width] : new byte[height, width];
+                dynamic AttributeMap = additional.IsNew ? new ushort[width, height] : new byte[width, height];
 
                 using (BinaryReader br = new BinaryReader(fs))
                 {
-                    for (int w = 0; w < width; w++)
-                        for (int h = 0; h < height; h++)
-                            if (additional.IsNew) AttributeMap[h, w] = br.ReadUInt16();
-                            else AttributeMap[h, w] = br.ReadByte();
+                    for (int h = 0; h < height; h++)
+                        for (int w = 0; w < width; w++)
+                            if (additional.IsNew) AttributeMap[w, h] = br.ReadUInt16();
+                            else AttributeMap[w, h] = br.ReadByte();
                 }
 
                 dynamic data = new ExpandoObject();
@@ -36,11 +36,12 @@ namespace ChaosLib.Map.Classes
 
                 data.AttributeMap = AttributeMap;
 
+                data.Layers = new ExpandoObject();
+                data.Layers.Merged = CUtils.CreateBitmap(width, height, colorizedMergedAttributes);
+
                 if (additional.SeparateLayers)
                 {
                     var colorizedAttributes = CAttributeMap.ColorizeAttributesAndKeepLayers(AttributeMap, width, height);
-
-                    data.Layers = new ExpandoObject();
                     data.Layers.MATT_WALKABLE = colorizedAttributes[0];
                     data.Layers.MATT_UNWALKABLE = colorizedAttributes[1];
                     data.Layers.MATT_PEACE = colorizedAttributes[2];
@@ -50,31 +51,28 @@ namespace ChaosLib.Map.Classes
                     data.Layers.MATT_STAIR_DOWN = colorizedAttributes[6];
                     data.Layers.MATT_PRODUCT_PUBLIC = colorizedAttributes[7];
                     data.Layers.MATT_PRODUCT_PRIVATE = colorizedAttributes[8];
-                    data.Layers.Merged = CUtils.CreateBitmap(width, height, colorizedMergedAttributes);
                 }
-                else
-                    data.Layers.Merged = CUtils.CreateBitmap(width, height, colorizedMergedAttributes);
-
 
                 return data;
             }
             else if (ct is ContentType.ServerHeightMap)
             {
-                int height = additional.height;
-                int width = additional.width;
+                int height = additional.Height;
+                int width = additional.Width;
 
-                var HeightMap = new ushort[height, width];
+                var HeightMap = new ushort[width, height];
 
                 using (BinaryReader br = new BinaryReader(fs))
                 {
                     BigEndianReader ber = new BigEndianReader(br);
-                    for (int w = 0; w < width; w++)
-                        for (int h = 0; h < height; h++)
-                            HeightMap[h, w] = ber.ReadUInt16();
+                    for (int h = 0; h < height; h++)
+                        for (int w = 0; w < width; w++)
+                            HeightMap[w, h] = ber.ReadUInt16();
                 }
 
                 dynamic data = new ExpandoObject();
                 data.HeightMap = HeightMap;
+                // make bitmap from height map later as well
 
                 return data;
             }

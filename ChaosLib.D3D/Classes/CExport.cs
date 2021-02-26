@@ -78,6 +78,9 @@ namespace ChaosLib.D3D.Classes
             return true;
         }
 
+        // private CSkeletonBone FindBoneByParent(CBinarySkeleton dataObject, string parentName) =>
+        //    Enumerable.FirstOrDefault(dataObject.Bones, x => x.Name.Equals(parentName));
+
         public StringBuilder SE1_ASCII(AssetType at, dynamic dataObject, StringBuilder sb)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
@@ -103,19 +106,20 @@ namespace ChaosLib.D3D.Classes
                     sb.Append($"\tLENGTH {bone.boneLength.ToString("0.000000")};\n");
                     sb.Append("\t{\n");
 
-                    var q2m = CUtils.QTM2(new Quaternion(new Vector3(bone.qRotation[1], bone.qRotation[2], bone.qRotation[3]), bone.qRotation[0]));
 
-                    matrix[0, 0] = q2m[0][0];
-                    matrix[0, 1] = q2m[0][1];
-                    matrix[0, 2] = q2m[0][2];
+                    var q2m = CUtils.Q2M(new Quaternion(new Vector3(bone.qRotation[1], bone.qRotation[2], bone.qRotation[3]), bone.qRotation[0]));
 
-                    matrix[1, 0] = q2m[1][0];
-                    matrix[1, 1] = q2m[1][1];
-                    matrix[1, 2] = q2m[1][2];
+                    matrix[0, 0] = q2m[0, 0];
+                    matrix[0, 1] = q2m[0, 1];
+                    matrix[0, 2] = q2m[0, 2];
 
-                    matrix[2, 0] = q2m[2][0];
-                    matrix[2, 1] = q2m[2][1];
-                    matrix[2, 2] = q2m[2][2];
+                    matrix[1, 0] = q2m[1, 0];
+                    matrix[1, 1] = q2m[1, 1];
+                    matrix[1, 2] = q2m[1, 2];
+
+                    matrix[2, 0] = q2m[2, 0];
+                    matrix[2, 1] = q2m[2, 1];
+                    matrix[2, 2] = q2m[2, 2];
 
                     matrix[0, 3] = bone.vPosition[0];
                     matrix[1, 3] = bone.vPosition[1];
