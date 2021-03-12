@@ -8,7 +8,7 @@ using System.Drawing;
 
 namespace ChaosLib.D3D.Classes
 {
-    class CUtils
+    public class CUtils
     {
         public static float[][] im =
         {
@@ -138,6 +138,30 @@ namespace ChaosLib.D3D.Classes
 
             return newBone.ToArray();
         }
+
+
+        public static byte[] Bitmap2Byte(Bitmap bitmap)
+        {
+            BitmapData bmpdata = null;
+
+            try
+            {
+                bmpdata = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
+                int numbytes = bmpdata.Stride * bitmap.Height;
+                byte[] bytedata = new byte[numbytes];
+                IntPtr ptr = bmpdata.Scan0;
+
+                System.Runtime.InteropServices.Marshal.Copy(ptr, bytedata, 0, numbytes);
+
+                return bytedata;
+            }
+            finally
+            {
+                if (bmpdata != null)
+                    bitmap.UnlockBits(bmpdata);
+            }
+        }
+
 
         public static Bitmap CreateBitmap(int w, int h, byte[] pd, PixelFormat pf)
         {

@@ -55,7 +55,7 @@ namespace ChaosLib.Map
         /// <summary></summary>
         MonsterCombo,
 
-        /// <summary></summary>
+        /// <summary></summary>     // client side only
         LevelGuide,
 
         /// <summary></summary>
@@ -67,16 +67,16 @@ namespace ChaosLib.Map
         /// <summary></summary>     // Not synced with database
         Map,
 
-        /// <summary></summary>
+        /// <summary></summary>     // client side only
         ArmorPreview,
 
-        /// <summary></summary>
+        /// <summary></summary>     // client side only
         WorldTerrain,
 
-        /// <summary></summary>
+        /// <summary></summary>     // server side only
         ServerAttributeMap,
 
-        /// <summary></summary>
+        /// <summary></summary>     // server side only
         ServerHeightMap
     }
 

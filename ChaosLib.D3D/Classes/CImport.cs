@@ -43,7 +43,7 @@ namespace ChaosLib.D3D.Classes
                 };
 
                 h.EncodedVersion = (h.FileVersion & uint.MaxValue) >> 16;
-                h.FileVersion &= UInt16.MaxValue;
+                h.FileVersion &= ushort.MaxValue;
 
                 bt.Header = h;
 
@@ -110,30 +110,50 @@ namespace ChaosLib.D3D.Classes
                     ? TextureFormat.DXT3 : isCompressed
                     ? TextureFormat.DXT1 : TextureFormat.RGB;
 
-                // only single texture supported for now
-                bool isRaw = (bt.TextureFormat is TextureFormat.RGB or TextureFormat.RGBA) ? true : false;
-                bt.PixelData = br.ReadBytes(isRaw ? ((int)bt.Width * (int)bt.Height) * (bt.TextureFormat is TextureFormat.RGB ? 3 : 4) : br.ReadInt32());
+                bool isRaw = (bt.TextureFormat is TextureFormat.RGB or TextureFormat.RGBA);
+                int frameSize = isRaw ? ((int)bt.Width * (int)bt.Height) * (bt.TextureFormat is TextureFormat.RGB ? 3 : 4) : br.ReadInt32();
 
-                if (bt.FrameTypeMagic is "FRMC")
-                    bt.PixelData = CDecompression.DecompressImage((int)bt.Width, (int)bt.Height, bt.PixelData, (CDecompression.DXTFlags)Enum.Parse(typeof(CDecompression.DXTFlags), bt.TextureFormat.ToString(), true));
+                bt.BitmapFrames = new Bitmap[(int)bt.FrameCount];
+                bt.PixelData = new byte[(int)bt.FrameCount][];
+
+                for (int i = 0; i < (int)bt.FrameCount; i++)
+                {
+                    bt.PixelData[i] = br.ReadBytes(frameSize);
+
+                    if (bt.FrameTypeMagic is "FRMC")
+                        bt.PixelData[i] = CDecompression.DecompressImage((int)bt.Width, (int)bt.Height, bt.PixelData[i], (CDecompression.DXTFlags)Enum.Parse(typeof(CDecompression.DXTFlags), bt.TextureFormat.ToString(), true));
+
+                    bt.BitmapFrames[i] = CUtils.CreateBitmap((int)bt.Width, (int)bt.Height, bt.PixelData[i], bt.TextureFormat is TextureFormat.RGB ? PixelFormat.Format24bppRgb : PixelFormat.Format32bppArgb);
+                }
+
+                bt.AnimationTypeMagic = Encoding.ASCII.GetString(br.ReadBytes(4));
+                if (bt.AnimationTypeMagic == "ANIM")
+                {
+                    bt.AnimationDataTypeMagic = Encoding.ASCII.GetString(br.ReadBytes(4));
+
+                    bt.AnimationCount = br.ReadInt32();
+                    bt.Animation = new CTextureAnimation[bt.AnimationCount];
+                    for (int i = 0; i < bt.AnimationCount; i++)
+                    {
+                        bt.Animation[i] = new CTextureAnimation
+                        {
+                            Name = Encoding.ASCII.GetString(br.ReadBytes(32)),
+                            FrameDuration = br.ReadSingle(),
+                            FrameCount = br.ReadInt32()
+                        };
+
+                        // bt.Animation[i].FrameIndices = new int[bt.Animation[i].FrameCount];
+                        // for (int j = 0; j < bt.Animation[i].FrameCount; j++)
+                        //    bt.Animation[i].FrameIndices[j] = br.ReadInt32();
+
+                    }
+                }
+
+                // else if(bt.AnimationTypeMagic is "FXBF")
+                //    throw new ArgumentException($"Effect texture is not yet supported by ChaosLib.D3D", nameof(bt.AnimationTypeMagic));
             };
 
-            Bitmap bmp = CUtils.CreateBitmap((int)bt.Width, (int)bt.Height, bt.PixelData, bt.TextureFormat is TextureFormat.RGB
-                ? PixelFormat.Format24bppRgb : PixelFormat.Format32bppArgb);
-
-            dynamic obj = new ExpandoObject();
-
-            obj.Image = bmp;
-            obj.Format = bt.TextureFormat;
-            obj.Width = bt.Width;
-            obj.Height = bt.Height;
-            obj.PixelData = bt.PixelData;
-
-            obj.Version = new ExpandoObject();
-            obj.Version.Standard = bt.Header.FileVersion;
-            obj.Version.Encoded = bt.Header.EncodedVersion;
-
-            return obj;
+            return bt;
         }
 
 

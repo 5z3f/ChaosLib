@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Drawing;
 
 namespace ChaosLib.D3D.Structures
 {
@@ -17,7 +13,9 @@ namespace ChaosLib.D3D.Structures
     {
         public CTextureHeader Header;
         public string DataTypeMagic,
-            FrameTypeMagic;
+            FrameTypeMagic,
+            AnimationTypeMagic,
+            AnimationDataTypeMagic;
 
         public TextureFormat TextureFormat;
 
@@ -32,7 +30,7 @@ namespace ChaosLib.D3D.Structures
 
         public int CompressedFrameSize;
 
-        public byte[] PixelData;
+        public byte[][] PixelData;
 
         public const int TEX_DATA_VER = 1;
         private readonly byte[] CODE_TEX = { 17, 02, 41, 01, 6 };
@@ -50,6 +48,18 @@ namespace ChaosLib.D3D.Structures
             ubChecker += CODE_TEX[4];
             return i ^ ulChecker;
         }
+
+        public int AnimationCount;
+        public CTextureAnimation[] Animation;
+        public Bitmap[] BitmapFrames;
+    }
+
+    public class CTextureAnimation
+    {
+        public string Name;
+        public float FrameDuration;
+        public int FrameCount;
+        // public int[] FrameIndices;
     }
 
     public enum TextureFormat

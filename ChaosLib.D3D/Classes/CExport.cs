@@ -18,6 +18,8 @@ using SharpGLTF.Geometry;
 using SharpGLTF.Materials;
 using SharpGLTF.Geometry.VertexTypes;
 using System.Linq;
+using SharpGLTF.Scenes;
+using System.Drawing.Imaging;
 
 namespace ChaosLib.D3D.Classes
 {
@@ -36,6 +38,7 @@ namespace ChaosLib.D3D.Classes
                 AssetType.MeshSE => WriteMeshV110(bw, dataObject),
                 AssetType.Animation => bs.Serialize(fs, dataObject),
                 AssetType.Skeleton => bs.Serialize(fs, dataObject),
+                AssetType.Texture => WriteTexture(bw, dataObject),
 
                 _ => null,
             };
@@ -396,10 +399,8 @@ namespace ChaosLib.D3D.Classes
             return true;
         }
 
-        public static Mesh CreateMesh(ModelRoot root, IMeshBuilder<MaterialBuilder> mesh)
-        {
-            return root.CreateMeshes(mesh)[0];
-        }
+        public static Mesh CreateMesh(ModelRoot root, IMeshBuilder<MaterialBuilder> mesh) 
+            => root.CreateMeshes(mesh)[0];
 
         public dynamic WriteGLTF(dynamic dataObject, string fp, bool toBinary)
         {
@@ -408,15 +409,23 @@ namespace ChaosLib.D3D.Classes
             ModelRoot model = ModelRoot.CreateModel();
             var scene = model.UseScene("Default");
 
-            List<Vector3> v = new List<Vector3>();
-            List<Vector3> vn = new List<Vector3>();
-            List<Vector2> uv = new List<Vector2>();
+            var v = new List<Vector3>();
+            var vn = new List<Vector3>();
+            var uv = new List<Vector2>();
 
             for (uint j = 0; j < meshData.VertexMapCount; ++j)
             {
                 v.Add(new Vector3(meshData.Vertices[j].X, meshData.Vertices[j].Y, meshData.Vertices[j].Z));
                 vn.Add(new Vector3(meshData.Normals[j].X, meshData.Normals[j].Y, meshData.Normals[j].Z));
                 uv.Add(new Vector2(meshData.UVMaps[0].UV[j].U, meshData.UVMaps[0].UV[j].V));
+
+                // VertexJoints4 joint = new VertexJoints4(new (int, float)[]
+                // {
+                //         (meshData.WeightMaps[j].VertexMapWeights[0].Index, meshData.WeightMaps[j].VertexMapWeights[0].Weight),
+                //         (meshData.WeightMaps[j].VertexMapWeights[1].Index, meshData.WeightMaps[j].VertexMapWeights[1].Weight),
+                //         (meshData.WeightMaps[j].VertexMapWeights[2].Index, meshData.WeightMaps[j].VertexMapWeights[2].Weight),
+                //         (meshData.WeightMaps[j].VertexMapWeights[3].Index, meshData.WeightMaps[j].VertexMapWeights[3].Weight)
+                // });
             }
 
             for (int i = 0; i < meshData.SurfaceCount; i++)
@@ -440,6 +449,13 @@ namespace ChaosLib.D3D.Classes
                 else
                     material = new MaterialBuilder("material_" + i);
 
+                    // MemoryStream textureStream = new MemoryStream();
+                    // texture.Write(textureStream, MagickFormat.Png);
+                    // materialBuilder
+                    //    .UseChannel(KnownChannel.BaseColor)
+                    //    .UseTexture()
+                    //    .WithPrimaryImage(new SharpGLTF.Memory.MemoryImage(textureStream.GetBuffer()));
+
                 for (int j = 0; j < meshData.Surfaces[i].TriangleCount; j++) // += 3  && [v0 - 0] [v1 - 1] [v2 - 2] || fw + 1
                 {
                     int fw = (int)meshData.Surfaces[i].FirstVertex;
@@ -448,9 +464,10 @@ namespace ChaosLib.D3D.Classes
                     int v1 = meshData.Surfaces[i].Triangles[j].v1 + fw;
                     int v2 = meshData.Surfaces[i].Triangles[j].v2 + fw;
 
-                    var v0g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((v[v0], vn[v0]), uv[v0]);
-                    var v1g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((v[v1], vn[v1]), uv[v1]);
-                    var v2g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((v[v2], vn[v2]), uv[v2]);
+                    var v0g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((v[v0], vn[v0]), uv[v0]); // - || -
+                    var v1g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((v[v1], vn[v1]), uv[v1]); // VertexEmpty => VertexJoints4
+                    var v2g = new VertexBuilder<VertexPositionNormal, VertexTexture1, VertexEmpty>((v[v2], vn[v2]), uv[v2]); // - || -
+
 
                     mesh.UsePrimitive(material).AddTriangle(v0g, v1g, v2g);
                 }
@@ -465,6 +482,68 @@ namespace ChaosLib.D3D.Classes
             return true;
         }
 
+        // only uncompressed for now
+        public dynamic WriteTexture(BinaryWriter bw, CBinaryTexture bt)
+        {
+            bt.ubChecker = CBinaryTexture.TEX_DATA_VER;
+
+            bw.Write(Encoding.ASCII.GetBytes("TVER"));
+            bw.Write((CBinaryTexture.TEX_DATA_VER << 16) | 4);
+
+            bw.Write(Encoding.ASCII.GetBytes("TDAT"));
+            bw.Write(bt.TexBitwise(bt.Width <<= (int)bt.FirstMipLevel));
+            bw.Write(bt.TexBitwise(bt.FirstMipLevel));
+            bw.Write(bt.TexBitwise(bt.Height <<= (int)bt.FirstMipLevel));
+            bw.Write(bt.TexBitwise(bt.MipMapCount));
+
+            bt.Flags |= (uint)TextureFlag.TEX_32BIT;
+            if(bt.BitmapFrames[0].PixelFormat is PixelFormat.Format32bppArgb)
+                bt.Flags |= (uint)TextureFlag.TEX_ALPHACHANNEL;
+
+            bool isCompressed = Convert.ToBoolean(bt.Flags & (uint)TextureFlag.TEX_COMPRESSED);
+            bw.Write(bt.TexBitwise(isCompressed ? bt.Flags &= ~(uint)TextureFlag.TEX_COMPRESSED : bt.Flags));
+            bw.Write(bt.TexBitwise(bt.FrameCount));
+
+            bw.Write(Encoding.ASCII.GetBytes("FRMS"));
+
+            bt.PixelData = new byte[bt.FrameCount][];
+            for (int i = 0; i < bt.FrameCount; i++)
+            {
+                // forgive me
+                var bmp = bt.BitmapFrames[i];
+                var bmp1 = CUtils.CreateBitmap(bmp.Width, bmp.Height, CUtils.Bitmap2Byte(bmp), bmp.PixelFormat);
+
+                bt.PixelData[i] = CUtils.Bitmap2Byte(bmp1);
+            }
+
+            for (int i = 0; i < bt.FrameCount; i++)
+                bw.Write(bt.PixelData[i]);
+
+            if(bt.FrameCount > 1)
+            {
+                bw.Write(Encoding.ASCII.GetBytes("ANIM"));
+                bw.Write(Encoding.ASCII.GetBytes("ADAT"));
+
+                bw.Write(bt.Animation.Length);
+                for (int i = 0; i < bt.Animation.Length; i++)
+                {
+                    string name = "CHAOSLIB_DEFAULT";
+                    bw.Write(Encoding.ASCII.GetBytes(name));
+
+                    for (int j = name.Length; j < 32; j++)
+                        bw.Write((byte)0x00);
+
+                    bw.Write(bt.Animation[i].FrameDuration);
+                    bw.Write(bt.Animation[i].FrameCount);
+
+                    for (int j = 0; j < bt.Animation[i].FrameCount; j++)
+                        bw.Write(j);
+                }
+
+            }
+
+            return bw;
+        }
         // code from sketch
         #region BINARY_DIRTY_CODE
         private static void BWString(BinaryWriter bw, string str)
