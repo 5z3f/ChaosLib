@@ -111,11 +111,23 @@ chaosAsset.Export(AssetType.Mesh, dataObject, "besurel.obj", AssetDataType.OBJ);
 ```cs
 ChaosAsset chaosAsset = new ChaosAsset();
 var texture = chaosAsset.Import(AssetType.Texture, "besurel.tex", AssetDataType.Binary);
-Bitmap bmp = texture.Image;
+Bitmap bmp = texture.BitmapFrames[0]; // non animated textures are exported as Frame 0
 bmp.Save("besurel.png", ImageFormat.Png);
 ```
 
-![besurel.png](example/besurel.png)
+<details>
+  <summary>Besurel Texture</summary>
+    
+  ![besurel.png](example/besurel.png)
+  
+</details>
+<details>
+  <summary>Animated Texture</summary>
+    
+  ![example-animated-texture](https://user-images.githubusercontent.com/39301116/110999776-2fbf0600-8381-11eb-8134-0d0babced07a.gif)
+  
+</details>
+
 
 ## ``MAP ATTRIBUTES``
 ![attribute-all.png](example/map-attributes/attribute-all.png)
