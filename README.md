@@ -28,6 +28,7 @@
   * ``BS`` Last Chaos Skeleton
   * ``BA`` Last Chaos Animation
   * ``BAE`` Last Chaos Animation Effect
+  * ``TEX`` Last Chaos Texture (Uncompressed)
 * __ASCII Exporter__
   * ``AM`` Mesh 0.1
   * ``AS`` Skeleton 0.1
